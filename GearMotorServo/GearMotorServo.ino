@@ -4,13 +4,21 @@
 #define MotorA 6
 #define MotorB 9
 
-#define EnCPR 1200
+//Contants
+//25mm 4.4:1
+//#define EnCPR 211.2
+//25mm 9.7:1
+#define EnCPR 464.64
+//37mm 18.75:1
+//#define EnCPR 1200
+#define MotorDead 10
 
-#define Kp 0.9
+#define Kp 2
 #define Ki 0
 #define Kd 0
 #define Cycle 2000
-#define MotorDead 10
+#define SetPointOne 150
+#define SetPointTwo 210
 
 volatile unsigned int EnPos = EnCPR/2;
 volatile unsigned int EnChA = 0;
@@ -18,7 +26,7 @@ volatile unsigned int EnChB = 0;
 
 long CycleTime = 0;
 unsigned int EnOutput = EnPos;
-unsigned int SetPoint = 90;
+unsigned int SetPoint = SetPointOne;
 float EnAngle = 0;
 int EnTurns = 0;
 
@@ -45,17 +53,16 @@ void loop() {
     Serial.print(SetPoint);
     Serial.print(" ProcessControl:");
     Serial.println(EnAngle);
-    if (SetPoint == 90) {
-      SetPoint = 270;
+    if (SetPoint == SetPointOne) {
+      SetPoint = SetPointTwo;
     }
     else {
-      SetPoint = 90;
+      SetPoint = SetPointOne;
     }
     CycleTime=millis()+Cycle;
   }
   /*Update*/
   EnOutput = EnPos;
-  //EnAngle = EnOutput * 0.3;
   EnAngle = EnOutput * 360.0 / EnCPR;
   /*Control */
   float error = SetPoint - EnAngle;
@@ -64,17 +71,14 @@ void loop() {
     control = 0;
   }
   Motor(control);
-
 }
 // Interrupt on A changing state
 void EnIsrA() {
   if (EnChB ^ EnChA) {
+    EnPos++;
     if (EnPos == EnCPR) {
       EnPos = 0;
       EnTurns++;
-    }
-    else {
-      EnPos++;
     }
   }
   else {
@@ -82,9 +86,7 @@ void EnIsrA() {
       EnPos = EnCPR;
       EnTurns--;
     }
-    else {
-      EnPos--;
-    }
+    EnPos--;
   }
   EnChA = digitalRead(EnPinA);
 }
@@ -92,12 +94,10 @@ void EnIsrA() {
 void EnIsrB() {
   EnChB = digitalRead(EnPinB);
   if (EnChB ^ EnChA) {
+    EnPos++;
     if (EnPos == EnCPR) {
       EnPos = 0;
       EnTurns++;
-    }
-    else {
-      EnPos++;
     }
   }
   else {
@@ -105,9 +105,7 @@ void EnIsrB() {
       EnPos = EnCPR;
       EnTurns--;
     }
-    else {
-      EnPos--;
-    }
+    EnPos--;
   }
 }
 void Motor(int pwm) {
