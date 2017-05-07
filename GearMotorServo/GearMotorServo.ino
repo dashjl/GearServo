@@ -1,24 +1,23 @@
-
-#include "MotorDriver.h"
-
 #define EnPinA 2
 #define EnPinB 3
-#define EnMax 1200
 #define MotorEn 8
 #define MotorA 6
 #define MotorB 9
+
+#define EnCPR 1200
+
 #define Kp 0.9
 #define Ki 0
 #define Kd 0
 #define Cycle 2000
 #define MotorDead 10
 
-volatile unsigned int EnPos = 600;
+volatile unsigned int EnPos = EnCPR/2;
 volatile unsigned int EnChA = 0;
 volatile unsigned int EnChB = 0;
 
 long CycleTime = 0;
-unsigned int EnOutput = 600;
+unsigned int EnOutput = EnPos;
 unsigned int SetPoint = 90;
 float EnAngle = 0;
 int EnTurns = 0;
@@ -56,7 +55,8 @@ void loop() {
   }
   /*Update*/
   EnOutput = EnPos;
-  EnAngle = EnOutput * 0.3;
+  //EnAngle = EnOutput * 0.3;
+  EnAngle = EnOutput * 360.0 / EnCPR;
   /*Control */
   float error = SetPoint - EnAngle;
   int control = error * Kp;
@@ -65,16 +65,11 @@ void loop() {
   }
   Motor(control);
 
-
-
- 
-  
-
 }
 // Interrupt on A changing state
 void EnIsrA() {
   if (EnChB ^ EnChA) {
-    if (EnPos == EnMax) {
+    if (EnPos == EnCPR) {
       EnPos = 0;
       EnTurns++;
     }
@@ -84,7 +79,7 @@ void EnIsrA() {
   }
   else {
     if (EnPos == 0) {
-      EnPos = EnMax;
+      EnPos = EnCPR;
       EnTurns--;
     }
     else {
@@ -97,7 +92,7 @@ void EnIsrA() {
 void EnIsrB() {
   EnChB = digitalRead(EnPinB);
   if (EnChB ^ EnChA) {
-    if (EnPos == EnMax) {
+    if (EnPos == EnCPR) {
       EnPos = 0;
       EnTurns++;
     }
@@ -107,7 +102,7 @@ void EnIsrB() {
   }
   else {
     if (EnPos == 0) {
-      EnPos = EnMax;
+      EnPos = EnCPR;
       EnTurns--;
     }
     else {
@@ -120,9 +115,11 @@ void Motor(int pwm) {
     digitalWrite(MotorA, 0);
     digitalWrite(MotorB, 0);
   }
+  //clamp pwm signal
   else if (pwm > 255) {
     Motor(255);
   }
+  //clamp pwm signal
   else if (pwm < -255) {
     Motor(-255);
   }
@@ -135,6 +132,5 @@ void Motor(int pwm) {
     digitalWrite(MotorA, 0);
     analogWrite(MotorB, -pwm);
   }
-
 }
 
