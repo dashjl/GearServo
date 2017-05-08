@@ -1,24 +1,24 @@
 #define EnPinA 2
 #define EnPinB 3
 #define MotorEn 8
-#define MotorA 6
+#define MotorA 9
 #define MotorB 10
 
 //Contants
 //25mm 4.4:1
 //#define EnCPR 211.2
 //25mm 9.7:1
-#define EnCPR 464.64
+//#define EnCPR 464.64
 //37mm 18.75:1
-//#define EnCPR 1200
+#define EnCPR 1200
 #define MotorDead 1
 #define SerialDecimal 8
 
 //parameters
 
 #define Cycle 10000
-#define SetPointOne 150
-#define SetPointTwo 210
+#define SetPointOne 120
+#define SetPointTwo 240
 
 volatile unsigned int EnPos = EnCPR / 2;
 volatile unsigned int EnChA = 0;
@@ -52,6 +52,13 @@ void setup() {
   Serial.begin (115200);
   Serial.println("Initialized");
   digitalWrite(MotorEn, HIGH);
+  //Set PWM to 31250 Hz
+  TCCR1B = TCCR1B & 0b11111000 | 0x01;
+  //Set PWM to 3906 Hz
+  //TCCR1B = TCCR1B & 0b11111000 | 0x02;
+  //Set PWM to 488 Hz
+  //TCCR1B = TCCR1B & 0b11111000 |0x03;
+  
   //setPwmFrequency(10, 1024);
 }
 void loop() {
