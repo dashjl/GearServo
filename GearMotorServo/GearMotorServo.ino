@@ -2,7 +2,7 @@
 #define EnPinB 3
 #define MotorEn 8
 #define MotorA 6
-#define MotorB 9
+#define MotorB 10
 
 //Contants
 //25mm 4.4:1
@@ -11,16 +11,16 @@
 #define EnCPR 464.64
 //37mm 18.75:1
 //#define EnCPR 1200
-#define MotorDead 10
+#define MotorDead 1
+#define SerialDecimal 8
 
-#define Kp 2
-#define Ki 0
-#define Kd 0
-#define Cycle 2000
+//parameters
+
+#define Cycle 10000
 #define SetPointOne 150
 #define SetPointTwo 210
 
-volatile unsigned int EnPos = EnCPR/2;
+volatile unsigned int EnPos = EnCPR / 2;
 volatile unsigned int EnChA = 0;
 volatile unsigned int EnChB = 0;
 
@@ -30,6 +30,13 @@ unsigned int SetPoint = SetPointOne;
 float EnAngle = 0;
 int EnTurns = 0;
 
+//pid
+double integrator = 0;
+double error = 0;
+double K = 2;
+double P = 1;
+double I = 0.00;
+double D = 0;
 
 void setup() {
   pinMode(EnPinA, INPUT);
@@ -45,28 +52,83 @@ void setup() {
   Serial.begin (115200);
   Serial.println("Initialized");
   digitalWrite(MotorEn, HIGH);
+  //setPwmFrequency(10, 1024);
 }
 void loop() {
-   /*Serial */
-  if (millis()>CycleTime) {
-    Serial.print("SetPoint:");
-    Serial.print(SetPoint);
-    Serial.print(" ProcessControl:");
-    Serial.println(EnAngle);
+  /*Serial */
+  if (millis() > CycleTime) {
+    //At start of cycle, check for serial updates
+    while (Serial.available() > 0) {
+      char parameter = Serial.read();// get parameter byte
+      float value = Serial.parseFloat();
+      Serial.readStringUntil('\n');
+      switch (parameter) {
+        case 'k':
+        case 'K':
+          K = value;
+          Serial.print("Param: ");
+          Serial.print(parameter);
+          Serial.print(" Set to: ");
+          Serial.print(value,SerialDecimal);
+          Serial.print(" Read as: ");
+          Serial.println(K,SerialDecimal);
+          break;
+        case 'p':
+        case 'P':
+          P = value;
+          Serial.print("Param: ");
+          Serial.print(parameter);
+          Serial.print(" Set to: ");
+          Serial.print(value,SerialDecimal);
+          Serial.print(" Read as: ");
+          Serial.println(P,SerialDecimal);
+          break;
+        case 'i':
+        case 'I':
+          I = value;
+          Serial.print("Param: ");
+          Serial.print(parameter);
+          Serial.print(" Set to: ");
+          Serial.print(value,SerialDecimal);
+          Serial.print(" Read as: ");
+          Serial.println(I,SerialDecimal);
+          break;
+        case 'd':
+        case 'D':
+          D = value;
+          Serial.print("Param: ");
+          Serial.print(parameter);
+          Serial.print(" Set to: ");
+          Serial.print(value,SerialDecimal);
+          Serial.print(" Read as: ");
+          Serial.println(D,SerialDecimal);
+          break;
+        default:
+          Serial.println("Invalid Statement");
+          break;
+      }
+    }
+
+    Serial.print("Error:");
+    Serial.print(SetPoint - EnAngle);
+    Serial.print(" Integrator:");
+    Serial.println(integrator);
+    integrator = 0;
     if (SetPoint == SetPointOne) {
       SetPoint = SetPointTwo;
     }
     else {
       SetPoint = SetPointOne;
     }
-    CycleTime=millis()+Cycle;
+    CycleTime = millis() + Cycle;
   }
   /*Update*/
   EnOutput = EnPos;
   EnAngle = EnOutput * 360.0 / EnCPR;
   /*Control */
-  float error = SetPoint - EnAngle;
-  int control = error * Kp;
+  error = SetPoint - EnAngle;
+  integrator += error;
+  int control = K * (error * P + integrator * I);
   if (abs(control) < MotorDead) {
     control = 0;
   }
