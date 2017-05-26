@@ -4,6 +4,7 @@
 #define MotorEn 8
 #define MotorA 9
 #define MotorB 10
+#define AngleSensor A1
 
 //Contants
 //25mm 4.4:1
@@ -14,6 +15,7 @@
 #define EnCPR 1200
 #define MotorDead 1
 #define SerialDecimal 8
+#define AngleSweep 300
 
 //parameters
 
@@ -42,6 +44,7 @@ double D = 0;
 void setup() {
   pinMode(EnPinA, INPUT);
   pinMode(EnPinB, INPUT);
+  pinMode(Potenti
   pinMode(MotorEn, OUTPUT);
   pinMode(MotorA, OUTPUT);
   pinMode(MotorB, OUTPUT);
@@ -201,4 +204,5 @@ void Motor(int pwm) {
     analogWrite(MotorB, -pwm);
   }
 }
+
 

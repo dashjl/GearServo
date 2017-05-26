@@ -37,8 +37,21 @@ void loop() {
     float value = Serial.parseFloat();
     Serial.readStringUntil('\n');
     switch (parameter) {
-      case '?':
+      case 'c':
+      case 'C':
         DisplayController();
+        break;
+      case '?':
+      case 'h':
+      case 'H':
+        Serial.println("Help, h, or ?: display this menu");
+        Serial.println("C: display controller info");
+        Serial.println("S: select controller 0 or 1");
+        Serial.println("K: controller K value");
+        Serial.println("P: controller P value");
+        Serial.println("I: controller I value");
+        Serial.println("D: controller D value");
+        Serial.println("E: encoder counter per revolution");        
         break;
       case 's':
       case 'S':
