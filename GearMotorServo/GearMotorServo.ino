@@ -10,9 +10,9 @@
 //25mm 4.4:1
 //#define EnCPR 211.2
 //25mm 9.7:1
-//#define EnCPR 464.64
+#define EnCPR 464.64
 //37mm 18.75:1
-#define EnCPR 1200
+//#define EnCPR 1200
 #define MotorDead 1
 #define SerialDecimal 8
 #define AngleSweep 300
@@ -36,7 +36,7 @@ int EnTurns = 0;
 //pid
 double integrator = 0;
 double error = 0;
-double K = 2;
+double K = 1;
 double P = 1;
 double I = 0.00;
 double D = 0;
@@ -44,7 +44,6 @@ double D = 0;
 void setup() {
   pinMode(EnPinA, INPUT);
   pinMode(EnPinB, INPUT);
-  pinMode(Potenti
   pinMode(MotorEn, OUTPUT);
   pinMode(MotorA, OUTPUT);
   pinMode(MotorB, OUTPUT);
@@ -136,6 +135,7 @@ void loop() {
   /*Update*/
   EnOutput = EnPos;
   EnAngle = EnOutput * 360.0 / EnCPR;
+  Serial.println(EnAngle);
   /*Control */
   error = SetPoint - EnAngle;
   integrator += error;

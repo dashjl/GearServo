@@ -2,11 +2,14 @@
 #define AngleSweep 300
 void setup() {
   Serial.begin(9600);
+  pinMode(5, OUTPUT);
+  digitalWrite(5,HIGH);
 }
 
 void loop() {
-  Serial.println( readVcc(), DEC );
+  //Serial.println( readVcc(), DEC );
   delay(1000);
+  Serial.println(readAngle(), DEC);
 }
 int readAngle()
 {
