@@ -30,17 +30,18 @@ volatile int EnPos = 0;
 volatile byte EnChA = 0;
 volatile byte EnChB = 0;
 
-unsigned int CycleCount, CycleTime, CycleFrequency;
 /*VARIABLES*/
-unsigned int EnOutput = 0;
-unsigned int SetPoint = 0;
-float EnAngle = 0;
-int EnTurns = 0;
+int EnOutput = 0;
+int SetPoint = 0;
+double EnAngle = 0;
 int control;
 
 /*CONTROLLER*/
 byte controllerSelect;
-byte enable;
+byte controllerEnable;
+int controllerFrequency = 1000;
+int controllerPeriod; = 1000000.00 / controllerFrequency;
+long lastTime;
 
 struct motor {
   double K;
@@ -97,11 +98,11 @@ void setup() {
 /* Main Loop */
 void loop() {
   // Serial.println(EnAngle);
-  CycleCount++;
-  if(millis()>CycleTime){
-    CycleFrequency=CycleCount*10;
-    CycleTime+=100;
-    CycleCount=0;
+  
+  if (millis() < CycleTime) {
+    CycleFrequency = CycleCount * 10;
+    CycleTime += 100;
+    CycleCount = 0;
   }
   serial();
   inputs();
@@ -118,9 +119,6 @@ int controller() {
   int control = motorPID.K * (error * motorPID.P + integrator * motorPID.I);
   return control;
 }
-void resetController(){
-  integrator = 0;
-}
 void outputs(int pwm) {
   if (pwm == 0) {
     digitalWrite(MotorA, 0);
@@ -135,8 +133,8 @@ void outputs(int pwm) {
     outputs(-255);
   }
   else if (pwm > 0) {
-    digitalWrite(MotorB, 0);
     analogWrite(MotorA, pwm);
+    digitalWrite(MotorB, 0);
   }
   else {
     digitalWrite(MotorA, 0);
@@ -155,7 +153,7 @@ void serial() {
       case 'C':
         if (value) {
           EEPROM.put(0, value);
-          LoadController(value);         
+          LoadController(value);
         }
         else {
           DisplayController(controllerSelect);
@@ -189,7 +187,7 @@ void serial() {
         Serial.println("E: encoder counter per revolution");
         break;
       case 's':
-      case 'S':       
+      case 'S':
         SetPoint = value;
       case 'e':
       case 'E':
@@ -231,7 +229,7 @@ void serial() {
 void LoadController(int select) {
   if (select == 1) {
     AddrPID = 1;
-    Serial.println("Selected Controller 1");    
+    Serial.println("Selected Controller 1");
   }
   else if (select == 2) {
     AddrPID = sizeof(motor) + 1;
@@ -266,6 +264,9 @@ void DisplayController(int select) {
   Serial.print(motorPID.I, SerialDecimal);
   Serial.print(" D:");
   Serial.println(motorPID.D, SerialDecimal);
+}
+void resetController() {
+  integrator = 0;
 }
 
 // Interrupt on A changing state
