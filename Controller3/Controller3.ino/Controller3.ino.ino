@@ -181,7 +181,7 @@ void serial() {
       case 'h':
       case 'H':
       case '?':
-        Serial.println("Help, h, or ?: display this menu");
+        Serial.println("H or ?: display this menu");
         Serial.println("C: select controller 1 or 2, no arg to display current");
         Serial.println("S: Setpoint Command");
         Serial.println("V: Display SV and CV");
@@ -189,6 +189,8 @@ void serial() {
         Serial.println("P: controller P value");
         Serial.println("I: controller I value");
         Serial.println("D: controller D value");
+        Serial.println("T: Display Timer Debug info");
+        Serial.println("T: Display controller frequcncy");
         Serial.println("E: encoder counter per revolution");
         break;
       case 'i':
