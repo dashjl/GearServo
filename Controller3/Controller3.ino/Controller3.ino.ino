@@ -40,7 +40,7 @@ int control;
 byte controllerSelect;
 byte controllerEnable;
 int controllerFrequency = 1000;
-int controllerPeriod; = 1000000.00 / controllerFrequency;
+int controllerPeriod = 1000000.00 / controllerFrequency;
 long lastTime;
 
 struct motor {
@@ -93,17 +93,19 @@ void setup() {
      Set PWM to 3906 Hz 0x02
      Set PWM to 488 Hz 0x03
   */
+
   TCCR1B = TCCR1B & 0b11111000 | 0x01;
 }
 /* Main Loop */
 void loop() {
   // Serial.println(EnAngle);
-  
-  if (millis() < CycleTime) {
-    CycleFrequency = CycleCount * 10;
-    CycleTime += 100;
-    CycleCount = 0;
-  }
+
+  /* if (millis() < CycleTime) {
+     CycleFrequency = CycleCount * 10;
+     CycleTime += 100;
+     CycleCount = 0;
+    }
+  */
   serial();
   inputs();
   control = controller();
@@ -144,7 +146,7 @@ void outputs(int pwm) {
 void serial() {
   while (Serial.available() > 0) {
     digitalWrite(MotorEn, LOW);
-    controllerReset();
+    ResetController();
     char parameter = Serial.read();// get parameter byte
     float value = Serial.parseFloat();
     Serial.readStringUntil('\n');
@@ -159,23 +161,26 @@ void serial() {
           DisplayController(controllerSelect);
         }
         break;
-      case 'v':
-      case 'V':
-        Serial.print("SV:");
-        Serial.print(SetPoint);
-        Serial.print(" PV:");
-        Serial.print(EnAngle);
-        Serial.print(" Error:");
-        Serial.println(SetPoint - EnAngle);
+      case 'd':
+      case 'D':
+        motorPID.D = value;
+        EEPROM.put(AddrPID, motorPID);
+        UpdateController(parameter, value);
+        break;
+      case 'e':
+      case 'E':
+        motorPID.EnCPR = value;
+        EEPROM.put(AddrPID, motorPID);
+        UpdateController(parameter, value);
         break;
       case 'f':
       case 'F':
         Serial.print("Controller Frequency:");
-        Serial.println(CycleFrequency);
+        Serial.println(controllerFrequency);
         break;
-      case '?':
       case 'h':
       case 'H':
+      case '?':
         Serial.println("Help, h, or ?: display this menu");
         Serial.println("C: select controller 1 or 2, no arg to display current");
         Serial.println("S: Setpoint Command");
@@ -186,12 +191,9 @@ void serial() {
         Serial.println("D: controller D value");
         Serial.println("E: encoder counter per revolution");
         break;
-      case 's':
-      case 'S':
-        SetPoint = value;
-      case 'e':
-      case 'E':
-        motorPID.EnCPR = value;
+      case 'i':
+      case 'I':
+        motorPID.I = value;
         EEPROM.put(AddrPID, motorPID);
         UpdateController(parameter, value);
         break;
@@ -207,17 +209,25 @@ void serial() {
         EEPROM.put(AddrPID, motorPID);
         UpdateController(parameter, value);
         break;
-      case 'i':
-      case 'I':
-        motorPID.I = value;
-        EEPROM.put(AddrPID, motorPID);
-        UpdateController(parameter, value);
+      case 's':
+      case 'S':
+        SetPoint = value;
         break;
-      case 'd':
-      case 'D':
-        motorPID.D = value;
-        EEPROM.put(AddrPID, motorPID);
-        UpdateController(parameter, value);
+      case 't':
+      case 'T':
+        Serial.print("MotorA ");
+        Serial.println(digitalPinToTimer(MotorA));
+        Serial.print("MotorB ");
+        Serial.println(digitalPinToTimer(MotorB));
+        break;
+      case 'v':
+      case 'V':
+        Serial.print("SV:");
+        Serial.print(SetPoint);
+        Serial.print(" PV:");
+        Serial.print(EnAngle);
+        Serial.print(" Error:");
+        Serial.println(SetPoint - EnAngle);
         break;
       default:
         Serial.println("Invalid Statement");
@@ -265,7 +275,7 @@ void DisplayController(int select) {
   Serial.print(" D:");
   Serial.println(motorPID.D, SerialDecimal);
 }
-void resetController() {
+void ResetController() {
   integrator = 0;
 }
 
