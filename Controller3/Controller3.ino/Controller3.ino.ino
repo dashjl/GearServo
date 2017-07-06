@@ -1,4 +1,6 @@
 #include <EEPROM.h>
+#define CLR(x,y) (x&=(~(1<<y)))
+#define SET(x,y) (x|=(1<<y))
 
 /*DEFINE PINS*/
 /* Motor
@@ -12,23 +14,23 @@
    37mm 18.75:1
    EnCPR 1200
 */
-#define EnPinA 2
-#define EnPinB 3
-#define MotorEn 8
-#define MotorA 9
-#define MotorB 10
+#define EnPinA 2 /* PD1 */
+#define EnPinB 3 /* PD0 */
+#define MotorEn 8 /* PB4 */
+#define MotorA 9 /* PB5 */
+#define MotorB 10 /* PB6 */
 /* Potentiometer
    Orange 5V Brown 0V Red Output
 */
-#define AngleSensor 1
+#define AngleSensor 1 /* PF6 */
 
 /*DEFINE PARAMETERS*/
 #define SerialDecimal 4
 
 /*ISR VARIABLES*/
 volatile int EnPos = 0;
-volatile byte EnChA = 0;
-volatile byte EnChB = 0;
+volatile bool EnChA = 0;
+volatile bool EnChB = 0;
 
 /*VARIABLES*/
 int EnOutput = 0;
@@ -39,7 +41,7 @@ int control;
 /*CONTROLLER*/
 byte controllerSelect;
 byte controllerEnable;
-int controllerFrequency = 1000;
+int controllerFrequency = 5000;
 int controllerPeriod = 1000000.00 / controllerFrequency;
 long lastTime;
 
@@ -75,7 +77,6 @@ void setup() {
   pinMode(MotorA, OUTPUT);
   pinMode(MotorB, OUTPUT);
   pinMode(MotorEn, OUTPUT);
-  digitalWrite(MotorEn, HIGH);
 
   /*SETUP SERIAL*/
   Serial.begin (115200);
@@ -93,7 +94,6 @@ void setup() {
      Set PWM to 3906 Hz 0x02
      Set PWM to 488 Hz 0x03
   */
-
   TCCR1B = TCCR1B & 0b11111000 | 0x01;
 }
 /* Main Loop */
@@ -125,6 +125,7 @@ void outputs(int pwm) {
   if (pwm == 0) {
     digitalWrite(MotorA, 0);
     digitalWrite(MotorB, 0);
+    //PORTB=PORTB & 0b10011111;
   }
   //clamp pwm signal
   else if (pwm > 255) {
@@ -137,6 +138,7 @@ void outputs(int pwm) {
   else if (pwm > 0) {
     analogWrite(MotorA, pwm);
     digitalWrite(MotorB, 0);
+    //PORTB = PORTB | 0b01000000;
   }
   else {
     digitalWrite(MotorA, 0);
@@ -145,7 +147,8 @@ void outputs(int pwm) {
 }
 void serial() {
   while (Serial.available() > 0) {
-    digitalWrite(MotorEn, LOW);
+    //digitalWrite(MotorEn, LOW);
+    SET(PORTB, 4);
     ResetController();
     char parameter = Serial.read();// get parameter byte
     float value = Serial.parseFloat();
@@ -184,14 +187,15 @@ void serial() {
         Serial.println("H or ?: display this menu");
         Serial.println("C: select controller 1 or 2, no arg to display current");
         Serial.println("S: Setpoint Command");
-        Serial.println("V: Display SV and CV");
+        Serial.println("R: Ramp Time, 0 for step");
+        Serial.println("V: Display Set and Current values");
         Serial.println("K: controller K value");
         Serial.println("P: controller P value");
         Serial.println("I: controller I value");
         Serial.println("D: controller D value");
-        Serial.println("T: Display Timer Debug info");
-        Serial.println("T: Display controller frequcncy");
-        Serial.println("E: encoder counter per revolution");
+        Serial.println("M: Display Pin Info");
+        Serial.println("F: Display controller frequcncy");
+        Serial.println("E: Encoder counts per revolution");
         break;
       case 'i':
       case 'I':
@@ -205,22 +209,34 @@ void serial() {
         EEPROM.put(AddrPID, motorPID);
         UpdateController(parameter, value);
         break;
+      /*Debug info for a pin */
+      case 'm':
+      case 'M':
+        int pin;
+        pin = (int) value;
+        Serial.print("Pin ");
+        Serial.println(pin);
+        Serial.print("Port ");
+        Serial.println(digitalPinToPort(pin));
+        Serial.print("BitMask ");
+        Serial.println(digitalPinToBitMask(pin),BIN);
+        Serial.print("Timer ");
+        Serial.println(digitalPinToTimer(pin));
+        Serial.print("Interrupt ");
+        Serial.println(digitalPinToInterrupt(pin));
+        break;
       case 'p':
       case 'P':
         motorPID.P = value;
         EEPROM.put(AddrPID, motorPID);
         UpdateController(parameter, value);
         break;
+      case 'r':
+      case 'R':
+        break;
       case 's':
       case 'S':
         SetPoint = value;
-        break;
-      case 't':
-      case 'T':
-        Serial.print("MotorA ");
-        Serial.println(digitalPinToTimer(MotorA));
-        Serial.print("MotorB ");
-        Serial.println(digitalPinToTimer(MotorB));
         break;
       case 'v':
       case 'V':
@@ -235,8 +251,10 @@ void serial() {
         Serial.println("Invalid Statement");
         break;
     }
+    Serial.println();
   }
-  digitalWrite(MotorEn, HIGH);
+  //digitalWrite(MotorEn, HIGH);
+  SET(PORTB, 4);
 }
 void LoadController(int select) {
   if (select == 1) {
@@ -288,12 +306,14 @@ void EnIsrA() {
   }
   else {
     EnPos--;
-  }
-  EnChA = digitalRead(EnPinA);
+  }  
+  //EnChA = digitalRead(EnPinA);
+  EnChA = PIND & 0b00000010;
 }
 // Interrupt on B changing state
 void EnIsrB() {
-  EnChB = digitalRead(EnPinB);
+  //EnChB = digitalRead(EnPinB);
+  EnChB = PIND & 0b00000001;
   if (EnChB ^ EnChA) {
     EnPos++;
   }
